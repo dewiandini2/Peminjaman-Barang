@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Peminjaman Barang Kampus</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #f2f5f9;
+      color: #1f2937;
+    }
+    header {
+      background: #1e3a8a;
+      color: #fff;
+      padding: 18px 16px;
+      text-align: center;
+    }
+    header h1 { margin: 0; font-size: 20px; }
+    header p { margin: 4px 0 0; font-size: 13px; opacity: .85; }
+    main { max-width: 1000px; margin: 0 auto; padding: 16px; }
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    .card h2 { margin: 0 0 12px; font-size: 16px; color: #1e3a8a; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .stat { background: #eef2ff; border-radius: 8px; padding: 10px; text-align: center; }
+    .stat b { display: block; font-size: 22px; color: #1e3a8a; }
+    .stat span { font-size: 12px; color: #4b5563; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+    label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 4px; }
+    input, select {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .actions { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+    button {
+      border: none;
+      border-radius: 6px;
+      padding: 9px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      color: #fff;
+    }
+    .btn-primary { background: #1e3a8a; }
+    .btn-secondary { background: #6b7280; }
+    .btn-edit { background: #d97706; padding: 6px 10px; font-size: 12px; }
+    .btn-delete { background: #dc2626; padding: 6px 10px; font-size: 12px; }
+    button:disabled { opacity: .6; cursor: not-allowed; }
+    .toolbar { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .toolbar input { flex: 1; min-width: 160px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 9px 8px; border-bottom: 1px solid #e5e7eb; text-align: left; white-space: nowrap; }
+    th { background: #f8fafc; color: #374151; }
+    .badge { padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .badge-pinjam { background: #fef3c7; color: #92400e; }
+    .badge-kembali { background: #dcfce7; color: #166534; }
+    .empty { text-align: center; color: #6b7280; padding: 20px; }
+    #toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #111827; color: #fff; padding: 10px 16px; border-radius: 8px;
+      font-size: 14px; display: none; z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Sistem Informasi Peminjaman Barang Kampus</h1>
+    <p>Berbasis Web Terintegrasi Google Sheets</p>
+  </header>
+
+  <main>
+    <!-- Ringkasan -->
+    <div class="card">
+      <div class="stats">
+        <div class="stat"><b id="statTotal">0</b><span>Total Data</span></div>
+        <div class="stat"><b id="statPinjam">0</b><span>Dipinjam</span></div>
+        <div class="stat"><b id="statKembali">0</b><span>Dikembalikan</span></div>
+      </div>
+    </div>
+
+    <!-- Form Tambah / Edit -->
+    <div class="card">
+      <h2 id="formTitle">Tambah Peminjaman</h2>
+      <form id="form">
+        <input type="hidden" id="id">
+        <div class="grid">
+          <div>
+            <label for="nama">Nama Peminjam</label>
+            <input id="nama" required placeholder="Nama lengkap">
+          </div>
+          <div>
+            <label for="nim">NIM</label>
+            <input id="nim" required placeholder="Contoh: 13020230001">
+          </div>
+          <div>
+            <label for="barang">Barang</label>
+            <input id="barang" required list="daftarBarang" placeholder="Pilih atau ketik">
+            <datalist id="daftarBarang">
+              <option value="Proyektor">
+              <option value="Kabel HDMI">
+              <option value="Speaker">
+              <option value="Mikrofon">
+              <option value="Laptop">
+              <option value="Terminal Listrik">
+            </datalist>
+          </div>
+          <div>
+            <label for="tglPinjam">Tanggal Pinjam</label>
+            <input type="date" id="tglPinjam" required>
+          </div>
+          <div>
+            <label for="tglKembali">Tanggal Kembali</label>
+            <input type="date" id="tglKembali" required>
+          </div>
+          <div>
+            <label for="status">Status</label>
+            <select id="status">
+              <option value="Dipinjam">Dipinjam</option>
+              <option value="Dikembalikan">Dikembalikan</option>
+            </select>
+          </div>
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn-primary" id="btnSimpan">Simpan</button>
+          <button type="button" class="btn-secondary" id="btnBatal" style="display:none">Batal Edit</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Tabel Data -->
+    <div class="card">
+      <h2>Data Peminjaman</h2>
+      <div class="toolbar">
+        <input id="cari" placeholder="Cari nama, NIM, atau barang...">
+        <button class="btn-secondary" id="btnRefresh">Muat Ulang</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>No</th><th>Nama</th><th>NIM</th><th>Barang</th>
+              <th>Tgl Pinjam</th><th>Tgl Kembali</th><th>Status</th><th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr><td colspan="8" class="empty">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast"></div>
+
+  <script>
+    // ============================================
+    // GANTI dengan URL Aplikasi Web dari Apps Script
+    // ============================================
+    const API_URL = "https://script.google.com/macros/s/AKfycbwHSY-WH0GKyhk0BQ-OoRzDaa_lDVF8zn2NnImC-WaD55f8YMDeqqab4vdh-zOQw1zo/exec";
+
+    let semuaData = [];
+    const $ = id => document.getElementById(id);
+
+    function toast(pesan) {
+      const t = $("toast");
+      t.textContent = pesan;
+      t.style.display = "block";
+      setTimeout(() => t.style.display = "none", 2500);
+    }
+
+    // ---------- READ ----------
+    async function muatData() {
+      $("tbody").innerHTML = '<tr><td colspan="8" class="empty">Memuat data...</td></tr>';
+      try {
+        const res = await fetch(API_URL);
+        const json = await res.json();
+        if (json.status !== "ok") throw new Error(json.message);
+        semuaData = json.data;
+        tampilkan();
+      } catch (err) {
+        $("tbody").innerHTML = '<tr><td colspan="8" class="empty">Gagal memuat data: ' + err.message + '</td></tr>';
+      }
+    }
+
+    function tampilkan() {
+      const kata = $("cari").value.toLowerCase();
+      const data = semuaData.filter(d =>
+        [d.nama, d.nim, d.barang].join(" ").toLowerCase().includes(kata)
+      );
+
+      $("statTotal").textContent = semuaData.length;
+      $("statPinjam").textContent = semuaData.filter(d => d.status === "Dipinjam").length;
+      $("statKembali").textContent = semuaData.filter(d => d.status === "Dikembalikan").length;
+
+      if (data.length === 0) {
+        $("tbody").innerHTML = '<tr><td colspan="8" class="empty">Belum ada data.</td></tr>';
+        return;
+      }
+
+      $("tbody").innerHTML = data.map((d, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${d.nama}</td>
+          <td>${d.nim}</td>
+          <td>${d.barang}</td>
+          <td>${d.tglPinjam}</td>
+          <td>${d.tglKembali}</td>
+          <td><span class="badge ${d.status === "Dipinjam" ? "badge-pinjam" : "badge-kembali"}">${d.status}</span></td>
+          <td>
+            <button class="btn-edit" onclick="editData('${d.id}')">Edit</button>
+            <button class="btn-delete" onclick="hapusData('${d.id}')">Hapus</button>
+          </td>
+        </tr>`).join("");
+    }
+
+    // ---------- Kirim ke Apps Script (CREATE / UPDATE / DELETE) ----------
+    async function kirim(action, data) {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ action, data }) // dikirim sebagai text/plain agar tidak kena CORS
+      });
+      const json = await res.json();
+      if (json.status !== "ok") throw new Error(json.message);
+      return json;
+    }
+
+    // ---------- CREATE & UPDATE ----------
+    $("form").addEventListener("submit", async e => {
+      e.preventDefault();
+      const data = {
+        id: $("id").value,
+        nama: $("nama").value.trim(),
+        nim: $("nim").value.trim(),
+        barang: $("barang").value.trim(),
+        tglPinjam: $("tglPinjam").value,
+        tglKembali: $("tglKembali").value,
+        status: $("status").value
+      };
+      const action = data.id ? "update" : "create";
+
+      $("btnSimpan").disabled = true;
+      $("btnSimpan").textContent = "Menyimpan...";
+      try {
+        const hasil = await kirim(action, data);
+        toast(hasil.message);
+        resetForm();
+        muatData();
+      } catch (err) {
+        toast("Gagal: " + err.message);
+      } finally {
+        $("btnSimpan").disabled = false;
+        $("btnSimpan").textContent = "Simpan";
+      }
+    });
+
+    // ---------- Isi form untuk EDIT ----------
+    function editData(id) {
+      const d = semuaData.find(x => String(x.id) === String(id));
+      if (!d) return;
+      $("id").value = d.id;
+      $("nama").value = d.nama;
+      $("nim").value = d.nim;
+      $("barang").value = d.barang;
+      $("tglPinjam").value = d.tglPinjam;
+      $("tglKembali").value = d.tglKembali;
+      $("status").value = d.status;
+      $("formTitle").textContent = "Edit Peminjaman";
+      $("btnBatal").style.display = "inline-block";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // ---------- DELETE ----------
+    async function hapusData(id) {
+      if (!confirm("Yakin ingin menghapus data ini?")) return;
+      try {
+        const hasil = await kirim("delete", { id });
+        toast(hasil.message);
+        muatData();
+      } catch (err) {
+        toast("Gagal: " + err.message);
+      }
+    }
+
+    function resetForm() {
+      $("form").reset();
+      $("id").value = "";
+      $("formTitle").textContent = "Tambah Peminjaman";
+      $("btnBatal").style.display = "none";
+    }
+
+    $("btnBatal").addEventListener("click", resetForm);
+    $("btnRefresh").addEventListener("click", muatData);
+    $("cari").addEventListener("input", tampilkan);
+
+    muatData();
+  </script>
+</body>
+</html>
